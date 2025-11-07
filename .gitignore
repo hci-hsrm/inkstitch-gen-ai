@@ -33,3 +33,4 @@ logs/
 /DEBUG
 /PROFILE
 /profile*
+.venv/
