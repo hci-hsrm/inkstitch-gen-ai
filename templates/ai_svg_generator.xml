@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <inkscape-extension translationdomain="inkstitch" xmlns="http://www.inkscape.org/namespace/inkscape/extension">
-    <name>Dummy Panel</name>
-    <id>org.{{ id_inkstitch }}.dummy_panel</id>
-    <param name="extension" type="string" gui-hidden="true">dummy_panel</param>
+    <name>AI SVG Generator</name>
+    <id>org.{{ id_inkstitch }}.ai_svg_generator</id>
+    <param name="extension" type="string" gui-hidden="true">ai_svg_generator</param>
     <effect implements-custom-gui="true">
         <object-type>all</object-type>
         <icon>{{ icon_path }}inkstitch_colour_logo.svg</icon>
+        <menu-tip>Generate SVGs using AI</menu-tip>
         <effects-menu>
             <submenu name="{{ menu_inkstitch }}" translatable="no" />
         </effects-menu>

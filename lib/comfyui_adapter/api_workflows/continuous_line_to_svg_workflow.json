@@ -1,0 +1,102 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    }
+  },
+  "2": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": ["1", 0],
+      "clip": ["1", 1],
+      "lora_name": "ContinuousLineXL.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncodeSDXL",
+    "inputs": {
+      "clip": ["2", 1],
+      "width": 1024,
+      "height": 1024,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1024,
+      "target_height": 1024,
+      "text_g": "continuous line drawing, a cat, single unbroken line, minimalist art, black line on white background, elegant curves, simple",
+      "text_l": "continuous line drawing, single unbroken line, minimalist art, black line on white background"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncodeSDXL",
+    "inputs": {
+      "clip": ["2", 1],
+      "width": 1024,
+      "height": 1024,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1024,
+      "target_height": 1024,
+      "text_g": "ugly, blurry, low quality, deformed, multiple lines, shading, color, filled shapes, gradient, realistic, photo",
+      "text_l": "ugly, blurry, low quality, deformed, multiple lines, shading, color"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["2", 0],
+      "positive": ["3", 0],
+      "negative": ["4", 0],
+      "latent_image": ["5", 0],
+      "seed": 0,
+      "steps": 25,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0
+    }
+  },
+  "7": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["6", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "17": {
+    "class_type": "TS_ImageToSVGStringBW_Potracer",
+    "inputs": {
+      "image": ["7", 0],
+      "threshold": 128,
+      "input_foreground": "Black on White",
+      "turnpolicy": "minority",
+      "turdsize": 2,
+      "corner_threshold": 1.0,
+      "zero_sharp_corners": false,
+      "opttolerance": 0.2,
+      "optimize_curve": true,
+      "foreground_color": "#000000",
+      "background_color": "none",
+      "stroke_color": "none",
+      "stroke_width": 0
+    }
+  },
+  "21": {
+    "class_type": "TS_SaveSVGString",
+    "inputs": {
+      "SVG_String": ["17", 0],
+      "filename_prefix": "ContinuousLine",
+      "append_timestamp": true
+    }
+  }
+}
