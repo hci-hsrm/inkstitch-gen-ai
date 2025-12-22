@@ -1,7 +1,6 @@
 name: Translations
 on:
-  schedule:
-    - cron: '0 0 * * *'
+  dispatch:
 jobs:
   crowdin:
     runs-on: ubuntu-24.04
