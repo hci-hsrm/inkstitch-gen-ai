@@ -129,7 +129,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._seed_value = None
         return self
     
-    def steps(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def _steps(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the number of sampling steps.
         
@@ -146,7 +146,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["steps"] = count
         return self
     
-    def cfg(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
+    def _cfg(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the CFG (classifier-free guidance) scale.
         
@@ -164,7 +164,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["cfg"] = value
         return self
     
-    def sampler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _sampler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the sampler algorithm.
         
@@ -183,7 +183,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["sampler_name"] = name
         return self
     
-    def scheduler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _scheduler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the scheduler.
         
@@ -200,7 +200,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["scheduler"] = name
         return self
     
-    def denoise(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
+    def _denoise(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the denoise strength.
         
@@ -222,7 +222,7 @@ class ContinuousLineToSVGWorkflowBuilder:
     # Image Configuration
     # -------------------------------------------------------------------------
     
-    def size(self, width: int, height: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def _size(self, width: int, height: int) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the output image size.
         
@@ -250,7 +250,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         
         return self
     
-    def batch_size(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def _batch_size(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set how many images to generate at once.
         
@@ -271,7 +271,7 @@ class ContinuousLineToSVGWorkflowBuilder:
     # Model Configuration
     # -------------------------------------------------------------------------
     
-    def checkpoint(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _checkpoint(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the base model checkpoint.
         
@@ -288,7 +288,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_CHECKPOINT]["inputs"]["ckpt_name"] = name
         return self
     
-    def lora(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _lora(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the LoRA model.
         
@@ -328,7 +328,7 @@ class ContinuousLineToSVGWorkflowBuilder:
     # SVG Configuration
     # -------------------------------------------------------------------------
     
-    def potracer_settings(
+    def _potracer_settings(
         self,
         threshold: int = 128,
         turdsize: int = 2,
@@ -361,7 +361,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         inputs["opttolerance"] = opttolerance
         return self
     
-    def output_prefix(self, prefix: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _output_prefix(self, prefix: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the SVG output filename prefix.
         
@@ -382,7 +382,7 @@ class ContinuousLineToSVGWorkflowBuilder:
     # API Configuration
     # -------------------------------------------------------------------------
     
-    def url(self, comfyui_url: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _url(self, comfyui_url: str) -> ContinuousLineToSVGWorkflowBuilder:
         """
         Set the ComfyUI server URL.
         

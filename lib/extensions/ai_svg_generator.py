@@ -18,6 +18,7 @@ class AISVGGeneratorFrame(wx.Frame):
     """Main frame for the AI SVG Generator."""
 
     def __init__(self, *args, **kwargs):
+        self.extension = kwargs.pop("extension")
         super().__init__(None, wx.ID_ANY, _("AI SVG Generator"), *args, **kwargs)
 
         self.SetWindowStyle(wx.FRAME_FLOAT_ON_PARENT | wx.DEFAULT_FRAME_STYLE)
@@ -27,7 +28,7 @@ class AISVGGeneratorFrame(wx.Frame):
         self.SetIcon(icon)
 
         # Main panel
-        self.panel = AISVGGeneratorPanel(self)
+        self.panel = AISVGGeneratorPanel(self, extension=self.extension)
 
         # Layout
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -53,7 +54,7 @@ class AiSvgGenerator(InkstitchExtension):
             print(f"Python path: {sys.path}", file=sys.stderr)
             
             app = wx.App()
-            frame = AISVGGeneratorFrame()
+            frame = AISVGGeneratorFrame(extension=self)
             frame.Show()
             print("AI SVG Generator: Frame shown, entering main loop", file=sys.stderr)
             app.MainLoop()

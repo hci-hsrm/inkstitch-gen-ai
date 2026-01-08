@@ -1,6 +1,7 @@
 import io
 import os
 import subprocess
+import sys
 import tempfile
 import wx
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -11,7 +12,7 @@ from ...i18n import _
 class ImagePreviewItem(wx.Panel):
     """A single image preview with Save and Select buttons."""
 
-    def __init__(self, parent, image_id, bitmap=None, svg_data=None, image_data=None, filename=None):
+    def __init__(self, parent, image_id, bitmap=None, svg_data=None, image_data=None, filename=None, extension=None):
         super().__init__(parent, wx.ID_ANY)
         self.image_id = image_id
         self.parent_panel = parent
@@ -19,6 +20,7 @@ class ImagePreviewItem(wx.Panel):
         self.image_data = image_data  # Raw image bytes
         self.filename = filename or f"output_{image_id}.svg"
         self.image_path = None
+        self.extension = extension
 
         self.SetBackgroundColour(wx.Colour(240, 240, 240))
 
@@ -133,19 +135,90 @@ class ImagePreviewItem(wx.Panel):
 
     def on_select(self, event):
         """Handle select button click - insert SVG into the document."""
-        # TODO: Implement document insertion
-        wx.MessageBox(
-            _("Select functionality will insert the SVG into your Inkscape document.\n\nThis feature is not yet implemented."),
-            _("Select"),
-            wx.OK | wx.ICON_INFORMATION
-        )
+        if not self.svg_data:
+            wx.MessageBox(
+                _("No SVG data to insert."),
+                _("Select"),
+                wx.OK | wx.ICON_WARNING
+            )
+            return
+        
+        if not self.extension:
+            wx.MessageBox(
+                _("Cannot access document. Extension not available."),
+                _("Select"),
+                wx.OK | wx.ICON_ERROR
+            )
+            return
+        
+        try:
+            from lxml import etree
+            import inkex
+            from ...svg.tags import INKSCAPE_LABEL
+            from ...svg.svg import generate_unique_id
+            from ...commands import get_correction_transform
+            
+            # Parse the SVG data
+            svg_root = etree.fromstring(self.svg_data.encode('utf-8'))
+            
+            # Get the current layer or document root
+            current_layer = self.extension.svg.get_current_layer()
+            if current_layer is None:
+                current_layer = self.extension.document.getroot()
+            
+            # Create a group to hold the imported elements
+            group = inkex.Group(attrib={
+                "id": generate_unique_id(self.extension.document, "ai_generated"),
+                INKSCAPE_LABEL: _("AI Generated SVG"),
+                "transform": get_correction_transform(current_layer, child=True)
+            })
+            
+            # Import all child elements from the parsed SVG
+            # We need to iterate carefully to avoid modifying during iteration
+            children_to_copy = []
+            for child in svg_root:
+                # Skip metadata, defs, and other non-visible elements
+                tag = child.tag
+                if isinstance(tag, str):
+                    local_tag = tag.split('}')[-1] if '}' in tag else tag
+                    if local_tag in ['metadata', 'defs', 'namedview']:
+                        continue
+                children_to_copy.append(child)
+            
+            # Copy all child elements to the new group
+            for child in children_to_copy:
+                # Remove from parent first (if any) and add to group
+                parent = child.getparent()
+                if parent is not None:
+                    parent.remove(child)
+                group.append(child)
+            
+            # Add the group to the current layer
+            current_layer.append(group)
+            
+            wx.MessageBox(
+                _("SVG has been inserted into your document as a new group in the current layer."),
+                _("Success"),
+                wx.OK | wx.ICON_INFORMATION
+            )
+            
+        except Exception as e:
+            import traceback
+            print(f"Error inserting SVG: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+            wx.MessageBox(
+                _("Failed to insert SVG into document:\n{}").format(str(e)),
+                _("Error"),
+                wx.OK | wx.ICON_ERROR
+            )
 
 
 class PreviewPanel(ScrolledPanel):
     """Right panel showing generated images with Save/Select buttons."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, extension=None):
         super().__init__(parent, wx.ID_ANY)
+        self.extension = extension
         self.SetupScrolling(scroll_x=False)
 
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
@@ -177,7 +250,7 @@ class PreviewPanel(ScrolledPanel):
             self.placeholder_text.Hide()
 
         self.image_count += 1
-        item = ImagePreviewItem(self, self.image_count)
+        item = ImagePreviewItem(self, self.image_count, extension=self.extension)
         self.image_items.append(item)
         self.images_sizer.Add(item, 0, wx.EXPAND | wx.ALL, 5)
 
@@ -193,7 +266,7 @@ class PreviewPanel(ScrolledPanel):
             self.image_count += 1
             image_id = self.image_count
 
-        item = ImagePreviewItem(self, image_id, bitmap, filename=filename)
+        item = ImagePreviewItem(self, image_id, bitmap, filename=filename, extension=self.extension)
         self.image_items.append(item)
         self.images_sizer.Add(item, 0, wx.EXPAND | wx.ALL, 5)
 
@@ -209,7 +282,7 @@ class PreviewPanel(ScrolledPanel):
         
         bitmap = self._render_svg_to_bitmap(svg_data)
         
-        item = ImagePreviewItem(self, self.image_count, bitmap, svg_data=svg_data, filename=filename)
+        item = ImagePreviewItem(self, self.image_count, bitmap, svg_data=svg_data, filename=filename, extension=self.extension)
         self.image_items.append(item)
         self.images_sizer.Add(item, 0, wx.EXPAND | wx.ALL, 5)
 
@@ -237,7 +310,7 @@ class PreviewPanel(ScrolledPanel):
             bitmap = None
         
         # Store both the bitmap for display and the raw data for saving
-        item = ImagePreviewItem(self, self.image_count, bitmap, image_data=image_data, filename=filename)
+        item = ImagePreviewItem(self, self.image_count, bitmap, image_data=image_data, filename=filename, extension=self.extension)
         self.image_items.append(item)
         self.images_sizer.Add(item, 0, wx.EXPAND | wx.ALL, 5)
 

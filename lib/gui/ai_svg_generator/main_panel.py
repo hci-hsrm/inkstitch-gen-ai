@@ -12,6 +12,7 @@ class AISVGGeneratorPanel(wx.Panel):
     """Main panel for the AI SVG Generator with split view."""
 
     def __init__(self, parent, **kwargs):
+        self.extension = kwargs.pop("extension", None)
         super().__init__(parent, wx.ID_ANY)
 
         self.parent = parent
@@ -43,7 +44,7 @@ class AISVGGeneratorPanel(wx.Panel):
 
         self.left_panel.SetSizer(left_sizer)
 
-        self.preview_panel = PreviewPanel(self.splitter)
+        self.preview_panel = PreviewPanel(self.splitter, extension=self.extension)
 
         self.splitter.SplitVertically(self.left_panel, self.preview_panel)
         self.splitter.SetMinimumPaneSize(300)
@@ -77,7 +78,7 @@ class AISVGGeneratorPanel(wx.Panel):
             
             self.settings_panel.apply_to_builder(builder)
             
-            builder.url(server_url)
+            builder._url(server_url)
             
             self.generating = True
             self.generate_button.Enable(False)

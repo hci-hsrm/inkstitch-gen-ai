@@ -12,13 +12,13 @@ from .workflow_builder import (
 # Registry of available workflows - keyed by class name for introspection
 WORKFLOW_REGISTRY = {
     "ContinuousLineToSVGWorkflowBuilder": ContinuousLineToSVGWorkflowBuilder,
-    "JankuWorkflowBuilder": JankuWorkflowBuilder,
+    # "JankuWorkflowBuilder": JankuWorkflowBuilder,
 }
 
 # Display names for workflows
 WORKFLOW_DISPLAY_NAMES = {
     "ContinuousLineToSVGWorkflowBuilder": "Continuous Line to SVG",
-    "JankuWorkflowBuilder": "Janku (Anime/Illustration)",
+    # "JankuWorkflowBuilder": "Janku (Anime/Illustration)",
 }
 
 def get_available_workflows():
