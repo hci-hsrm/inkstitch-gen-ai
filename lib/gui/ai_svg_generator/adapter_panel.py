@@ -94,5 +94,10 @@ class AdapterPanel(wx.Panel):
         if workflow_name:
             builder_class = get_workflow_builder(workflow_name)
             if builder_class:
-                return builder_class()
+                builder = builder_class()
+                # Set the ComfyUI server URL on the workflow builder
+                url = self.get_inference_url()
+                if hasattr(builder, '_comfyui_url'):
+                    builder._comfyui_url = url
+                return builder
         return None

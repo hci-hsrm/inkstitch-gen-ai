@@ -64,7 +64,6 @@ class AISVGGeneratorPanel(wx.Panel):
             return
         
         try:
-            # Get the workflow builder
             builder = self.adapter_panel.get_workflow_builder()
             if not builder:
                 wx.MessageBox(
@@ -77,8 +76,6 @@ class AISVGGeneratorPanel(wx.Panel):
             server_url = self.adapter_panel.get_inference_url()
             
             self.settings_panel.apply_to_builder(builder)
-            
-            builder._url(server_url)
             
             self.generating = True
             self.generate_button.Enable(False)

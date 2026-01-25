@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fluent builder pattern for ComfyUI workflows.
+Base class for ComfyUI to SVG workflow builders.
 """
 
 from __future__ import annotations
@@ -11,18 +11,29 @@ import urllib.request
 import urllib.error
 import time
 from pathlib import Path
-from typing import Optional, Literal, Union
+from typing import Optional, Union, TypeVar
+
+T = TypeVar('T', bound='ComfyUiToSVGWorkflowBuilder')
 
 
-class ContinuousLineToSVGWorkflowBuilder:
+class ComfyUiToSVGWorkflowBuilder:
     """
-    Builder for the continuous line drawing to SVG workflow.
+    Abstract base class for ComfyUI to SVG workflow builders.
     
     Uses a fluent interface pattern - all setter methods return self,
     allowing method chaining.
+    
+    Subclasses must define:
+        - DEFAULT_WORKFLOW_PATH: Class attribute with the path to the default workflow JSON
+    
+    Subclasses may override:
+        - _build_prompt(): Build the positive prompt from the subject
     """
     
-    # Node IDs in the workflow
+    # Subclasses must define this
+    DEFAULT_WORKFLOW_PATH: Optional[Path] = None
+    
+    # Node IDs in the workflow (can be overridden by subclasses)
     NODE_CHECKPOINT = "1"
     NODE_LORA = "2"
     NODE_POSITIVE_PROMPT = "3"
@@ -33,16 +44,18 @@ class ContinuousLineToSVGWorkflowBuilder:
     NODE_POTRACER = "17"
     NODE_SAVE_SVG = "21"
     
-    def __init__(self, workflow_path: Optional[Union[str, Path]] = None):
+    def __init__(self: T, workflow_path: Optional[Union[str, Path]] = None):
         """
         Initialize the workflow builder.
         
         Args:
-            workflow_path: Path to workflow JSON. If None, uses the default
-                          continuous_line_to_svg_workflow.json in the api-workflows directory.
+            workflow_path: Path to workflow JSON. If None, uses DEFAULT_WORKFLOW_PATH.
         """
         if workflow_path is None:
-            workflow_path = Path(__file__).parent.parent / "api_workflows" / "continuous_line_to_svg_workflow.json"
+            workflow_path = self.DEFAULT_WORKFLOW_PATH
+        
+        if workflow_path is None:
+            raise ValueError(f"{self.__class__.__name__} must define DEFAULT_WORKFLOW_PATH")
         
         with open(workflow_path, 'r') as f:
             self._template = json.load(f)
@@ -54,17 +67,18 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._seed_value: Optional[int] = None
         self._comfyui_url = "http://127.0.0.1:8188"
     
+    def _build_prompt(self) -> None:
+        """Build the positive prompt from the subject. Override in subclasses."""
+        self._workflow[self.NODE_POSITIVE_PROMPT]["inputs"]["text_g"] += f", motiv: {self._subject_text}"
+        self._workflow[self.NODE_POSITIVE_PROMPT]["inputs"]["text_l"] += f", motiv: {self._subject_text}"
+    
     # -------------------------------------------------------------------------
     # Prompt Configuration
     # -------------------------------------------------------------------------
     
-    def subject(self, text: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def subject(self: T, text: str) -> T:
         """
         Set the subject to draw.
-        
-        Workflow Effect:
-            "continuous line drawing, {subject}, single unbroken line, minimalist art..."
-            This is the main content that will be drawn as a continuous line.
         
         Args:
             text: What to draw, e.g., "a cat sitting", "a person dancing"
@@ -75,13 +89,12 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._subject_text = text
         return self
     
-    def negative_prompt(self, text_g: str, text_l: Optional[str] = None) -> ContinuousLineToSVGWorkflowBuilder:
+    def negative_prompt(self: T, text_g: str, text_l: Optional[str] = None) -> T:
         """
         Set the negative prompt.
         
         Workflow Effect:
-            Tells the model what to avoid generating. Default includes: "ugly, blurry,
-            multiple lines, shading, color, filled shapes" to keep output as clean line art.
+            Tells the model what to avoid generating. Keep empty to use default.
         
         Args:
             text_g: Global negative prompt
@@ -98,13 +111,9 @@ class ContinuousLineToSVGWorkflowBuilder:
     # Sampler Configuration
     # -------------------------------------------------------------------------
     
-    def seed(self, value: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def seed(self: T, value: int) -> T:
         """
         Set the random seed for reproducibility.
-        
-        Workflow Effect:
-            Same seed + same settings = identical output. Useful for reproducing
-            or iterating on a specific generation.
         
         Args:
             value: Seed value (0 to 2^32-1)
@@ -115,27 +124,10 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._seed_value = value
         return self
     
-    def random_seed(self) -> ContinuousLineToSVGWorkflowBuilder:
-        """
-        Use a random seed (default behavior).
-        
-        Workflow Effect:
-            A random seed will be generated at build() time and set on the KSampler.
-            Each queue() will produce a unique result.
-        
-        Returns:
-            self for method chaining
-        """
-        self._seed_value = None
-        return self
-    
-    def _steps(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def steps(self: T, count: int) -> T:
         """
         Set the number of sampling steps.
-        
-        Workflow Effect:
-            More steps = higher quality but slower. For continuous line art,
-            25-30 steps usually sufficient. Diminishing returns above 50.
+        More steps = higher quality but slower.
         
         Args:
             count: Number of steps (typically 20-50)
@@ -146,7 +138,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["steps"] = count
         return self
     
-    def _cfg(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
+    def _cfg(self: T, value: float) -> T:
         """
         Set the CFG (classifier-free guidance) scale.
         
@@ -164,13 +156,9 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["cfg"] = value
         return self
     
-    def _sampler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _sampler(self: T, name: str) -> T:
         """
         Set the sampler algorithm.
-        
-        Workflow Effect:
-            Different samplers produce different aesthetics. "euler" is fast and
-            reliable for line art. "dpmpp_2m" often gives sharper results.
         
         Args:
             name: Sampler name (euler, euler_ancestral, dpm_2, dpm_2_ancestral, 
@@ -183,13 +171,9 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["sampler_name"] = name
         return self
     
-    def _scheduler(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _scheduler(self: T, name: str) -> T:
         """
         Set the scheduler.
-        
-        Workflow Effect:
-            Controls the noise schedule during denoising. "normal" is standard,
-            "karras" often produces cleaner results with fewer steps.
         
         Args:
             name: Scheduler name (normal, karras, exponential, sgm_uniform, simple)
@@ -200,14 +184,10 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_SAMPLER]["inputs"]["scheduler"] = name
         return self
     
-    def _denoise(self, value: float) -> ContinuousLineToSVGWorkflowBuilder:
+    def _denoise(self: T, value: float) -> T:
         """
         Set the denoise strength.
-        
-        Workflow Effect:
-            1.0 = full generation from noise (text-to-image).
-            Lower values preserve more of input image (for img2img workflows).
-            For this workflow, keep at 1.0.
+        1.0 = full generation from noise (text-to-image).
         
         Args:
             value: Denoise value (0.0 to 1.0, typically 1.0 for txt2img)
@@ -222,13 +202,9 @@ class ContinuousLineToSVGWorkflowBuilder:
     # Image Configuration
     # -------------------------------------------------------------------------
     
-    def _size(self, width: int, height: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def _size(self: T, width: int, height: int) -> T:
         """
         Set the output image size.
-        
-        Workflow Effect:
-            width/height/target dimensions. SDXL works best at 1024x1024
-            or similar total pixel counts. The SVG output will trace this raster size.
         
         Args:
             width: Image width in pixels
@@ -237,11 +213,9 @@ class ContinuousLineToSVGWorkflowBuilder:
         Returns:
             self for method chaining
         """
-        # Update latent size
         self._workflow[self.NODE_LATENT]["inputs"]["width"] = width
         self._workflow[self.NODE_LATENT]["inputs"]["height"] = height
         
-        # Update SDXL prompt conditioning size
         for node_id in [self.NODE_POSITIVE_PROMPT, self.NODE_NEGATIVE_PROMPT]:
             self._workflow[node_id]["inputs"]["width"] = width
             self._workflow[node_id]["inputs"]["height"] = height
@@ -250,13 +224,9 @@ class ContinuousLineToSVGWorkflowBuilder:
         
         return self
     
-    def _batch_size(self, count: int) -> ContinuousLineToSVGWorkflowBuilder:
+    def _batch_size(self: T, count: int) -> T:
         """
         Set how many images to generate at once.
-        
-        Workflow Effect:
-            Generates multiple images in parallel (VRAM permitting).
-            Each will be converted to a separate SVG file.
         
         Args:
             count: Number of images per batch
@@ -271,13 +241,9 @@ class ContinuousLineToSVGWorkflowBuilder:
     # Model Configuration
     # -------------------------------------------------------------------------
     
-    def _checkpoint(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _checkpoint(self: T, name: str) -> T:
         """
         Set the base model checkpoint.
-        
-        Workflow Effect:
-            This is the base SDXL model. The LoRA is applied on top of this.
-            Must be an SDXL-compatible checkpoint for best results.
         
         Args:
             name: Checkpoint filename (e.g., "sd_xl_base_1.0.safetensors")
@@ -288,16 +254,12 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_CHECKPOINT]["inputs"]["ckpt_name"] = name
         return self
     
-    def _lora(self, name: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _lora(self: T, name: str) -> T:
         """
         Set the LoRA model.
         
-        Workflow Effect:
-            The ContinuousLineXL LoRA fine-tunes the model to produce single
-            unbroken line drawings. This is what makes the continuous line style work.
-        
         Args:
-            name: LoRA filename (e.g., "ContinuousLineXL.safetensors")
+            name: LoRA filename (e.g., "LogoXL.safetensors")
         
         Returns:
             self for method chaining
@@ -305,13 +267,11 @@ class ContinuousLineToSVGWorkflowBuilder:
         self._workflow[self.NODE_LORA]["inputs"]["lora_name"] = name
         return self
     
-    def lora_strength(self, model: float, clip: Optional[float] = None) -> ContinuousLineToSVGWorkflowBuilder:
+    def lora_strength(self: T, model: float, clip: Optional[float] = None) -> T:
         """
         Set the LoRA strength.
-        
-        Workflow Effect:
-            Higher = stronger continuous line effect. 1.0 is full strength.
-            Lower values blend with base model style. Usually keep at 0.8-1.0.
+        Higher = stronger effect. 1.0 is full strength.
+        Lower values blend with base model style. Usually keep at 0.8-1.0.
         
         Args:
             model: Model strength (0.0 to 2.0, typically around 1.0)
@@ -329,21 +289,19 @@ class ContinuousLineToSVGWorkflowBuilder:
     # -------------------------------------------------------------------------
     
     def _potracer_settings(
-        self,
+        self: T,
         threshold: int = 128,
         turdsize: int = 2,
         corner_threshold: float = 1.0,
         opttolerance: float = 0.2
-    ) -> ContinuousLineToSVGWorkflowBuilder:
+    ) -> T:
         """
         Configure Potracer SVG conversion settings.
-        
-        Workflow Effect:
-            Controls how the raster image is traced into vector paths:
-            - threshold: Brightness cutoff for black vs white (128 = middle)
-            - turdsize: Removes specks smaller than this (higher = cleaner)
-            - corner_threshold: Sharper corners (lower = more angular)
-            - opttolerance: Curve smoothing (higher = simpler paths)
+        Controls how the raster image is traced into vector paths:
+        - threshold: Brightness cutoff for black vs white (128 = middle)
+        - turdsize: Removes specks smaller than this (higher = cleaner)
+        - corner_threshold: Sharper corners (lower = more angular)
+        - opttolerance: Curve smoothing (higher = simpler paths)
         
         Args:
             threshold: Black/white threshold (0-255)
@@ -361,7 +319,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         inputs["opttolerance"] = opttolerance
         return self
     
-    def _output_prefix(self, prefix: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def _output_prefix(self: T, prefix: str) -> T:
         """
         Set the SVG output filename prefix.
         
@@ -370,7 +328,7 @@ class ContinuousLineToSVGWorkflowBuilder:
             Saved to ComfyUI's output directory.
         
         Args:
-            prefix: Filename prefix (e.g., "ContinuousLine")
+            prefix: Filename prefix (e.g., "Logo")
         
         Returns:
             self for method chaining
@@ -379,31 +337,10 @@ class ContinuousLineToSVGWorkflowBuilder:
         return self
     
     # -------------------------------------------------------------------------
-    # API Configuration
-    # -------------------------------------------------------------------------
-    
-    def _url(self, comfyui_url: str) -> ContinuousLineToSVGWorkflowBuilder:
-        """
-        Set the ComfyUI server URL.
-        
-        Workflow Effect:
-            Does not modify the workflow JSON. Sets the target server for queue().
-            Use this if ComfyUI is running on a different host or port.
-        
-        Args:
-            comfyui_url: Server URL (e.g., "http://127.0.0.1:8188")
-        
-        Returns:
-            self for method chaining
-        """
-        self._comfyui_url = comfyui_url
-        return self
-    
-    # -------------------------------------------------------------------------
     # Build & Execute
     # -------------------------------------------------------------------------
     
-    def build(self) -> ContinuousLineToSVGWorkflowBuilder:
+    def build(self: T) -> T:
         """
         Finalize the workflow configuration.
         
@@ -413,12 +350,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         Returns:
             self for method chaining
         """
-        # Build positive prompt from subject
-        positive_g = f"continuous line drawing, {self._subject_text}, single unbroken line, minimalist art, black line on white background, elegant curves, simple"
-        positive_l = "continuous line drawing, single unbroken line, minimalist art, black line on white background"
-        
-        self._workflow[self.NODE_POSITIVE_PROMPT]["inputs"]["text_g"] = positive_g
-        self._workflow[self.NODE_POSITIVE_PROMPT]["inputs"]["text_l"] = positive_l
+        self._build_prompt()
         
         # Set seed
         seed = self._seed_value if self._seed_value is not None else random.randint(0, 2**32 - 1)
@@ -447,7 +379,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         """
         return json.dumps(self._workflow, indent=indent)
     
-    def save(self, path: str) -> ContinuousLineToSVGWorkflowBuilder:
+    def save(self: T, path: str) -> T:
         """
         Save the workflow to a JSON file.
         
@@ -477,7 +409,6 @@ class ContinuousLineToSVGWorkflowBuilder:
             urllib.error.URLError: If cannot connect to ComfyUI
             TimeoutError: If execution doesn't complete in time
         """
-        # Queue the prompt
         data = json.dumps({"prompt": self._workflow}).encode('utf-8')
         req = urllib.request.Request(
             f"{self._comfyui_url}/prompt",
@@ -508,7 +439,7 @@ class ContinuousLineToSVGWorkflowBuilder:
         
         raise TimeoutError(f"Prompt {prompt_id} did not complete within {timeout} seconds")
     
-    def reset(self) -> ContinuousLineToSVGWorkflowBuilder:
+    def reset(self: T) -> T:
         """
         Reset the workflow to the original template.
         
