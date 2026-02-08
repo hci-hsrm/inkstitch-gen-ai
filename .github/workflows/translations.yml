@@ -1,8 +1,10 @@
 name: Translations
 on:
-  dispatch:
+  workflow_dispatch:
+    
 jobs:
   crowdin:
+    if: false  # disabled — not needed in this fork
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

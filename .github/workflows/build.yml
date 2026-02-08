@@ -95,6 +95,8 @@ jobs:
           sudo gem install fpm
           python -m pip install --upgrade pip
           python -m pip install wheel
+          # pin setuptools to avoid wxPython build failure (copy_file signature change in setuptools>=75)
+          python -m pip install "setuptools<75.0.0"
 
           sudo apt-get install gettext
 
@@ -434,7 +436,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [linux32, linux64, linuxarm64, windows64, macx86, macarm64]
+    needs: [linux32, linux64, linuxarm64, windows64]
     if: always()
     steps:
       - name: determine release info
@@ -457,33 +459,24 @@ jobs:
         with:
           name: 'inkstitch-linux64'
           path: 'artifacts/'
+        if: always()
       - name: download linuxarm64
         uses: actions/download-artifact@v4
         with:
           name: 'inkstitch-linuxarm64'
           path: 'artifacts/'
+        if: always()
       - name: download linux32
         uses: actions/download-artifact@v4
         with:
           name: 'inkstitch-linux32'
           path: 'artifacts/'
+        if: always()
       - name: download windows64
         uses: actions/download-artifact@v4
         with:
           name: 'inkstitch-windows64'
           path: 'signed-artifacts/'
-        if: always()
-      - name: download macx86
-        uses: actions/download-artifact@v4
-        with:
-          name: 'inkstitch-mac-x86'
-          path: 'artifacts/'
-        if: always()
-      - name: download macarm64
-        uses: actions/download-artifact@v4
-        with:
-          name: 'inkstitch-mac-arm64'
-          path: 'artifacts/'
         if: always()
       - name: create/update release
         uses: softprops/action-gh-release@v2

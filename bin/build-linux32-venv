@@ -9,6 +9,8 @@ python3 -m venv virtualenv
 source virtualenv/bin/activate
           
 virtualenv/bin/pip debug
+# pin setuptools to avoid wxPython build failure (copy_file signature change in setuptools>=75)
+virtualenv/bin/pip install "setuptools<75.0.0"
 virtualenv/bin/pip install pycairo
 virtualenv/bin/pip install PyGObject==3.50.0
 
