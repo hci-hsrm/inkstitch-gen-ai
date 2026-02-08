@@ -300,7 +300,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: inkstitch-windows64
-          path: artifacts
+          path: |
+            artifacts
+            signed-artifacts
   macx86:
     runs-on: macos-14
     if: false  # Skip macOS builds (requires Apple certificates)
