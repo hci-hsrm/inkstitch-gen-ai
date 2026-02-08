@@ -1,0 +1,56 @@
+[tools]
+python = "3.11"
+
+[env]
+# Virtual environment location
+VIRTUAL_ENV = "{{config_root}}/.venv"
+PATH = "{{config_root}}/.venv/bin:{{env.PATH}}"
+
+# GEOS library paths (if building locally)
+# GEOS_INCLUDE_PATH = "{{env.HOME}}/geos-build/include"
+# GEOS_LIBRARY_PATH = "{{env.HOME}}/geos-build/lib"
+
+[tasks.setup]
+description = "Install all Python dependencies"
+run = """
+#!/bin/bash
+set -e
+echo "Creating virtual environment..."
+python -m venv .venv
+source .venv/bin/activate
+
+echo "Upgrading pip..."
+pip install --upgrade pip wheel
+
+echo "Installing PyGObject and pycairo..."
+pip install pycairo
+pip install PyGObject==3.50.0
+
+echo "Installing wxPython from pre-built wheel..."
+pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.2-cp311-cp311-linux_x86_64.whl
+
+echo "Installing requirements..."
+pip install -r requirements.txt
+
+echo "Installing dev tools..."
+pip install pyinstaller mypy
+
+echo "Setup complete!"
+"""
+
+[tasks.inx]
+description = "Generate INX files"
+run = "make inx"
+
+[tasks.test]
+description = "Run tests"
+run = "make test"
+
+[tasks.build]
+description = "Build distribution"
+run = "make dist"
+env = { BUILD = "linux" }
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "make distclean"
