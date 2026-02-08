@@ -74,7 +74,6 @@ jobs:
           make dist
         env:
           BUILD: linux
-          INKSTITCH_GPG_KEY: ${{ secrets.INKSTITCH_GPG_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: inkstitch-linux64
@@ -144,7 +143,6 @@ jobs:
           make dist
         env:
           BUILD: linux
-          INKSTITCH_GPG_KEY: ${{ secrets.INKSTITCH_GPG_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: inkstitch-linuxarm64
@@ -235,7 +233,6 @@ jobs:
           deactivate
         env:
           BUILD: linux32
-          INKSTITCH_GPG_KEY: ${{ secrets.INKSTITCH_GPG_KEY }}
       - name: Upload artifact
         shell: bash
         run: |
@@ -293,67 +290,18 @@ jobs:
           make dist
         env:
           BUILD: windows
-      - name: Set siging policy to release
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          echo release_policy="release-signing" >> $GITHUB_ENV
-      - name: upload-unsigned-exe
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: upload-unsigned-exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: inkstitch-windows64-exe
-          path: |
-            dist/inkstitch/bin/inkstitch.exe
-      - name: Sign-exe
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: Sign-exe
-        uses: signpath/github-action-submit-signing-request@v1.1
-        with:
-          api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-          organization-id: '6b880880-2af8-4cf3-a8e7-1b4977c593df'
-          project-slug: 'inkstitch'
-          signing-policy-slug: '${{ env.release_policy }}'
-          github-artifact-id: '${{ steps.upload-unsigned-exe.outputs.artifact-id }}'
-          wait-for-completion: true
-          output-artifact-directory: 'signed-artifacts'
-      - name: Copy signed exe to dist
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-            mv  -f signed-artifacts/inkstitch.exe dist/inkstitch/bin/inkstitch.exe
       - shell: bash
         run: |
           bash bin/build-windows-installer
         env:
           BUILD: windows
-      - name: upload-unsigned-installer
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: upload-unsigned-installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: inkstitch-windows64-installer
-          path: signed-artifacts
-      - name: Sign-installer
-        if: startsWith(github.event.ref, 'refs/tags/v')
-        id: Sign-installer
-        uses: signpath/github-action-submit-signing-request@v1.1
-        with:
-          api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-          organization-id: '6b880880-2af8-4cf3-a8e7-1b4977c593df'
-          project-slug: 'inkstitch'
-          signing-policy-slug: '${{ env.release_policy }}'
-          artifact-configuration-slug: 'windows-installer-config'
-          github-artifact-id: '${{ steps.upload-unsigned-installer.outputs.artifact-id }}'
-          wait-for-completion: true
-          output-artifact-directory: 'signed-artifacts'
       - uses: actions/upload-artifact@v4
         with:
           name: inkstitch-windows64
-          path: signed-artifacts
+          path: artifacts
   macx86:
     runs-on: macos-14
+    if: false  # Skip macOS builds (requires Apple certificates)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -419,6 +367,7 @@ jobs:
           path: artifacts
   macarm64:
     runs-on: macos-latest
+    if: false  # Skip macOS builds (requires Apple certificates)
     steps:
       - uses: actions/checkout@v4
         with:
