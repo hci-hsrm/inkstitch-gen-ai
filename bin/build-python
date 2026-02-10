@@ -52,6 +52,9 @@ fi
 if [ "$BUILD" = "osx" -o "$BUILD" = "windows" ]; then
     pyinstaller_args+="--windowed "
 fi
+# Bundle ComfyUI workflow JSON files
+pyinstaller_args+="--add-data lib/comfyui_adapter/api_workflows:lib/comfyui_adapter/api_workflows "
+
 # Run command to build the inkstich program
 python -m PyInstaller $pyinstaller_args inkstitch.py
 
