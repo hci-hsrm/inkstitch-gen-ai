@@ -440,6 +440,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [linux32, linux64, linuxarm64, windows64]
     if: always()
+    permissions:
+      contents: write
     steps:
       - name: determine release info
         shell: bash
@@ -478,7 +480,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: 'inkstitch-windows64'
-          path: 'signed-artifacts/'
+          path: '.'
         if: always()
       - name: create/update release
         uses: softprops/action-gh-release@v2
