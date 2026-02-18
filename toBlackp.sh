@@ -1,1 +1,0 @@
-ssh -L 8188:localhost:8188 -N blackpanther
