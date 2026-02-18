@@ -4,17 +4,9 @@
 The Ink/Stitch Gen-AI extension brings the power of generative AI directly into your embroidery design workflow.
 This extension provides an interface that allows you to generate and convert ideas into embroidery-ready SVGs.
 
-## Integration of diffrent inferences
+Checkout the Wiki for more details on how to use the Gen-AI extension, including installation instructions, usage guides, and troubleshooting tips!
 
-### ComfyUI
-
-The extension includes first-class support for [ComfyUI](https://github.com/comfyanonymous/ComfyUI), a powerful and modular interface for Stable Diffusion and other generative models. 
-
-With ComfyUI integration, you can:
-
-* **Local inference** - Run ComfyUI locally for complete control and privacy over your design generation process
-* **Flexible workflows** - Connect to remote ComfyUI instances for cloud-based inference capabilities
-* **Styles** Extend a base model with LoRA (Low-Rank Adaptation) models to customize the visual style of your generated designs.
+---
 
 # Ink/Stitch: An open source machine embroidery design platform based on Inkscape
 
