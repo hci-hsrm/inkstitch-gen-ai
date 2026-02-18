@@ -4,14 +4,12 @@
 
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
@@ -20,7 +18,6 @@ echo -e "${BLUE}  Ink/Stitch Development Setup Script  ${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Function to print status messages
 info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -37,7 +34,6 @@ error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if running on Ubuntu/Debian
 check_os() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -52,7 +48,6 @@ check_os() {
     fi
 }
 
-# Install mise if not present
 install_mise() {
     if command -v mise &> /dev/null; then
         success "mise is already installed: $(mise --version)"
@@ -60,12 +55,10 @@ install_mise() {
         info "Installing mise..."
         curl https://mise.run | sh
         
-        # Add to bashrc if not already there
         if ! grep -q "mise activate" ~/.bashrc 2>/dev/null; then
             echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
         fi
         
-        # Source mise for current session
         export PATH="$HOME/.local/bin:$PATH"
         eval "$(~/.local/bin/mise activate bash)"
         
@@ -73,13 +66,11 @@ install_mise() {
     fi
 }
 
-# Install system dependencies
 install_system_deps() {
     info "Installing system dependencies..."
     
     sudo apt-get update
     
-    # Essential build tools
     sudo apt-get install -y \
         build-essential \
         cmake \
@@ -87,33 +78,27 @@ install_system_deps() {
         git \
         curl
     
-    # For gettext (translation tools)
     sudo apt-get install -y gettext
     
-    # For wxPython
     sudo apt-get install -y \
         libnotify4 \
         libsdl2-dev \
         libsdl2-2.0-0 \
         glib-networking
     
-    # For PyGObject and pycairo
     sudo apt-get install -y \
         libgirepository1.0-dev \
         libcairo2-dev \
         gir1.2-gtk-3.0
     
-    # For shapely and GTK
     sudo apt-get install -y \
         libgtk-3-dev
     
-    # For numpy (optional, for building from source)
     sudo apt-get install -y \
         gfortran \
         libopenblas-dev \
         liblapack-dev
     
-    # Ubuntu 24.04 compatibility: wxPython needs libtiff5 but 24.04 has libtiff6
     if [ ! -f /usr/lib/x86_64-linux-gnu/libtiff.so.5 ]; then
         if [ -f /usr/lib/x86_64-linux-gnu/libtiff.so.6 ]; then
             info "Creating libtiff5 compatibility symlink for Ubuntu 24.04..."
@@ -127,13 +112,11 @@ install_system_deps() {
 # Install Inkscape
 install_inkscape() {
     if command -v inkscape &> /dev/null; then
-        # Use clean environment to avoid snap conflicts
         INKSCAPE_VERSION=$(env -i PATH=/usr/bin:/bin inkscape --version 2>/dev/null | head -1 || echo "installed")
         success "Inkscape is already installed: $INKSCAPE_VERSION"
     else
         info "Installing Inkscape..."
         
-        # Try to add PPA, fall back to apt if it fails
         if sudo add-apt-repository -y ppa:inkscape.dev/stable 2>/dev/null; then
             sudo apt-get update
         fi
@@ -150,7 +133,6 @@ setup_python() {
     
     cd "$PROJECT_DIR"
     
-    # Trust and install mise configuration
     if [ -f ".mise.toml" ]; then
         mise trust --all
         mise install
@@ -167,9 +149,6 @@ setup_python_deps() {
     
     cd "$PROJECT_DIR"
     
-    # Create venv if it doesn't exist
-    # Note: --system-site-packages allows access to system Python packages
-    # This is useful for development but NOT needed for Inkscape (see setup_system_python_deps)
     if [ ! -d ".venv" ]; then
         python -m venv .venv --system-site-packages
         success "Virtual environment created with system site-packages access"
@@ -177,26 +156,20 @@ setup_python_deps() {
         info "Virtual environment already exists"
     fi
     
-    # Activate venv
     source .venv/bin/activate
     
-    # Upgrade pip
     info "Upgrading pip..."
     pip install --upgrade pip wheel
     
-    # Install pycairo and PyGObject first
     info "Installing pycairo and PyGObject..."
     pip install pycairo
     pip install PyGObject==3.50.0
     
-    # Install wxPython from pre-built wheel
     info "Installing wxPython (this may take a moment)..."
     
-    # Detect Ubuntu version and Python version for correct wheel
     UBUNTU_VERSION=$(lsb_release -rs 2>/dev/null || echo "22.04")
     PYTHON_VERSION=$(python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
     
-    # Default to Ubuntu 22.04 wheel
     WXPYTHON_URL="https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.2-cp311-cp311-linux_x86_64.whl"
     
     pip install "$WXPYTHON_URL" || {
@@ -204,18 +177,15 @@ setup_python_deps() {
         pip install wxPython
     }
     
-    # Install remaining requirements
     info "Installing remaining Python dependencies..."
     pip install -r requirements.txt
     
-    # Install dev tools
     info "Installing development tools..."
     pip install pyinstaller mypy
     
     success "Python dependencies installed"
 }
 
-# Verify installation
 verify_installation() {
     info "Verifying installation..."
     
@@ -258,13 +228,10 @@ verify_installation() {
 setup_system_python_deps() {
     info "Installing Python dependencies for system Python (used by Inkscape)..."
     
-    # Check system Python version
     SYSTEM_PYTHON=$(which /usr/bin/python3)
     SYSTEM_PY_VERSION=$($SYSTEM_PYTHON --version 2>&1)
     info "System Python: $SYSTEM_PY_VERSION"
     
-    # Ubuntu 24.04+ uses PEP 668 which blocks pip install to system Python
-    # We need --break-system-packages to install to user site-packages
     info "Installing to user site-packages (~/.local/lib/python3.x/site-packages)..."
     
     $SYSTEM_PYTHON -m pip install --user --break-system-packages -r "$PROJECT_DIR/requirements.txt" || {
@@ -288,10 +255,8 @@ setup_inkscape_symlink() {
     INKSCAPE_EXT_DIR="$HOME/.config/inkscape/extensions"
     SYMLINK_PATH="$INKSCAPE_EXT_DIR/inkstitch"
     
-    # Create extensions directory if it doesn't exist
     mkdir -p "$INKSCAPE_EXT_DIR"
     
-    # Check if symlink already exists
     if [ -L "$SYMLINK_PATH" ]; then
         CURRENT_TARGET=$(readlink -f "$SYMLINK_PATH")
         if [ "$CURRENT_TARGET" = "$PROJECT_DIR" ]; then
@@ -314,13 +279,11 @@ setup_inkscape_symlink() {
         return
     fi
     
-    # Create the symlink
     ln -s "$PROJECT_DIR" "$SYMLINK_PATH"
     success "Created symlink: $SYMLINK_PATH -> $PROJECT_DIR"
     info "Restart Inkscape to see Ink/Stitch under Extensions menu"
 }
 
-# Main execution
 main() {
     echo ""
     info "Starting Ink/Stitch development environment setup..."
@@ -403,5 +366,4 @@ main() {
     echo ""
 }
 
-# Run main function
 main "$@"
